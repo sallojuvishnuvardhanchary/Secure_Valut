@@ -31,14 +31,6 @@ export default function Settings() {
   const [name, setName] = useState(user?.name || '');
   const [profileSaving, setProfileSaving] = useState(false);
 
-  // Password Change state
-  const [pwdForm, setPwdForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmNewPassword: '',
-  });
-  const [pwdSaving, setPwdSaving] = useState(false);
-
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -59,29 +51,7 @@ export default function Settings() {
     }
   };
 
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    if (pwdForm.newPassword !== pwdForm.confirmNewPassword) {
-      toast.error('New passwords do not match.');
-      return;
-    }
-    if (pwdForm.newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters.');
-      return;
-    }
-    setPwdSaving(true);
-    try {
-      const res = await userApi.changePassword(pwdForm);
-      if (res.data?.success) {
-        toast.success('Master login password changed successfully.');
-        setPwdForm({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to change master password.');
-    } finally {
-      setPwdSaving(false);
-    }
-  };
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', maxWidth: '860px' }}>
@@ -237,58 +207,86 @@ export default function Settings() {
         </form>
       </div>
 
-      {/* 4. Change Master Password */}
+      {/* 4. Authentication Security: Passwordless Email OTP */}
       <div className="vault-card" style={{ padding: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.35rem', color: 'var(--text-primary)' }}>
-          Change Master Password
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            Authentication & Access Protection
+          </h3>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              padding: '0.3rem 0.65rem',
+              borderRadius: '9999px',
+              backgroundColor: 'var(--success-light)',
+              color: 'var(--success)',
+              border: '1px solid var(--success)',
+            }}
+          >
+            <CheckCircle2 size={13} />
+            Passwordless Email OTP Active
+          </span>
+        </div>
         <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-          Your master password protects access to your entire vault. Make sure it is complex and memorable.
+          Your vault is protected by cryptographically secure one-time password (OTP) verification dispatched directly to your registered email address.
         </p>
 
-        <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Current Master Password</label>
-            <input
-              type="password"
-              value={pwdForm.currentPassword}
-              onChange={(e) => setPwdForm({ ...pwdForm, currentPassword: e.target.value })}
-              className="form-input mono-font"
-              placeholder="••••••••••••"
-              required
-            />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+          <div
+            style={{
+              padding: '1rem',
+              backgroundColor: 'var(--bg-card-subtle)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '10px',
+            }}
+          >
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>AUTHENTICATION METHOD</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>
+              6-Digit CSPRNG Email OTP
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+              Zero login passwords stored or required.
+            </div>
           </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">New Master Password</label>
-            <input
-              type="password"
-              value={pwdForm.newPassword}
-              onChange={(e) => setPwdForm({ ...pwdForm, newPassword: e.target.value })}
-              className="form-input mono-font"
-              placeholder="At least 8 characters"
-              required
-            />
+          <div
+            style={{
+              padding: '1rem',
+              backgroundColor: 'var(--bg-card-subtle)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '10px',
+            }}
+          >
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>OTP EXPIRY & LIMITS</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>
+              5 Minutes / Max 5 Attempts
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+              Includes 60s cooldown against brute-force.
+            </div>
           </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Confirm New Master Password</label>
-            <input
-              type="password"
-              value={pwdForm.confirmNewPassword}
-              onChange={(e) => setPwdForm({ ...pwdForm, confirmNewPassword: e.target.value })}
-              className="form-input mono-font"
-              placeholder="••••••••••••"
-              required
-            />
+          <div
+            style={{
+              padding: '1rem',
+              backgroundColor: 'var(--bg-card-subtle)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '10px',
+            }}
+          >
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>STORAGE INTEGRITY</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.25rem' }}>
+              HMAC-SHA256 Hashing
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+              Codes are never stored in plaintext in MongoDB.
+            </div>
           </div>
-
-          <div>
-            <button type="submit" className="btn btn-primary" disabled={pwdSaving}>
-              {pwdSaving ? 'Updating Master Password...' : 'Update Master Password'}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
 
       {/* 5. Cryptographic Architecture Information */}

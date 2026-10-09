@@ -100,12 +100,9 @@ export default function VerifyOtp() {
 
     try {
       if (purpose === 'register') {
-        const res = await verifyRegisterOtp(email, currentOtp);
-        toast.success('Account successfully verified! Please log in.');
-        navigate('/login', {
-          replace: true,
-          state: { verifiedMessage: 'Your account is activated! Please sign in with your master credentials.' },
-        });
+        await verifyRegisterOtp(email, currentOtp);
+        toast.success('Account successfully verified! Welcome to SecureVault.');
+        navigate('/', { replace: true });
       } else {
         await verifyLoginOtp(email, currentOtp);
         toast.success('Identity verified. Welcome back to SecureVault!');
@@ -189,10 +186,10 @@ export default function VerifyOtp() {
             <Shield size={28} />
           </div>
           <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            {isRegister ? 'Verify Registration' : 'Two-Factor Authentication'}
+            {isRegister ? 'Verify Registration' : 'Email OTP Verification'}
           </h1>
           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
-            Enter the 6-digit verification code sent to your Gmail
+            Enter the 6-digit verification code sent to your email
           </p>
 
           {/* Email badge */}

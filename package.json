@@ -1,0 +1,16 @@
+{
+  "name": "securevault-root",
+  "version": "1.0.0",
+  "description": "SecureVault — Enterprise MERN Secure Password Manager",
+  "private": true,
+  "scripts": {
+    "install:all": "npm --prefix Program/backend install && npm --prefix Program/frontend install",
+    "seed": "npm --prefix Program/backend run seed",
+    "test:backend": "npm --prefix Program/backend run test",
+    "test:smtp": "npm --prefix Program/backend run test:smtp",
+    "start:backend": "npm --prefix Program/backend start",
+    "dev:backend": "npm --prefix Program/backend run dev",
+    "dev:frontend": "npm --prefix Program/frontend run dev",
+    "build:frontend": "npm --prefix Program/frontend run build"
+  }
+}

@@ -5,8 +5,10 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Please provide your full name'],
       trim: true,
+      default: function () {
+        return this.email ? this.email.split('@')[0] : 'SecureVault User';
+      },
       maxlength: [60, 'Name cannot exceed 60 characters'],
     },
     email: {
@@ -22,8 +24,7 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Please provide a password'],
-      minlength: [8, 'Password must be at least 8 characters long'],
+      required: false,
       select: false, // Do not return password by default in queries
     },
     preferences: {
@@ -48,9 +49,9 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Hash master password before saving if modified
+// Hash master password before saving if modified and present
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  if (!this.password || !this.isModified('password')) {
     return next();
   }
   const salt = await bcrypt.genSalt(12);
@@ -58,8 +59,9 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-// Compare password method
+// Compare password method (gracefully returns false if user has no password)
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 

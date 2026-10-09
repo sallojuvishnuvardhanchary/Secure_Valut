@@ -18,6 +18,7 @@ import {
   RESEND_COOLDOWN_MS,
 } from './otpUtils.js';
 import { sendOtpEmail } from '../services/emailService.js';
+import { generateToken } from './jwt.js';
 
 async function runTests() {
   console.log('--- STARTING SECUREVAULT BACKEND TEST SUITE ---');
@@ -238,6 +239,32 @@ async function runTests() {
     emailFailureCaught = true;
   }
   assert(emailFailureCaught, 'Email delivery failure is properly caught without pretending verification succeeded');
+
+  // 9. Email OTP-Only Passwordless Account Creation & Session Establishment
+  console.log('\n[TEST 9] Testing Passwordless Account Creation & Session Establishment...');
+  try {
+    const passwordlessEmail = `pwdless_${Date.now()}@example.com`;
+    // Create user without password
+    const newUser = await User.create({
+      email: passwordlessEmail,
+    });
+    assert(newUser._id, 'Passwordless user created in MongoDB without requiring a login password');
+    assert(newUser.name === passwordlessEmail.split('@')[0], 'Default name derived from email prefix when name is omitted');
+
+    // Issue JWT token immediately upon OTP verification
+    const token = generateToken(newUser._id);
+    assert(typeof token === 'string' && token.length > 20, 'JWT token generated immediately upon registration OTP verification');
+
+    // Verify vault encryption works for passwordless user
+    const credEncrypted = encryptPassword('VaultSecret999!', newUser._id.toString());
+    const credDecrypted = decryptPassword(credEncrypted.encryptedPassword, credEncrypted.iv, credEncrypted.authTag, newUser._id.toString());
+    assert(credDecrypted === 'VaultSecret999!', 'AES-256-GCM vault encryption & decryption works seamlessly for passwordless user');
+
+    await User.deleteOne({ _id: newUser._id });
+  } catch (err) {
+    console.error('Passwordless test error:', err);
+    failures++;
+  }
 
   await mongoose.disconnect();
 

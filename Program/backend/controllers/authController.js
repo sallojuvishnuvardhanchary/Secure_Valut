@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { OtpChallenge } from '../models/OtpChallenge.js';
 import { generateToken } from '../utils/jwt.js';
@@ -10,40 +9,31 @@ import {
   RESEND_COOLDOWN_MS,
 } from '../utils/otpUtils.js';
 import { sendOtpEmail } from '../services/emailService.js';
-import { encryptPassword, decryptPassword } from '../services/cryptoService.js';
 
 /**
- * Step 1: Initiate New User Registration
- * Validates inputs, creates registration OTP challenge, and sends 6-digit OTP via Gmail SMTP.
+ * Step 1: Initiate New User Registration (Email OTP-Only)
+ * Validates email, creates registration OTP challenge, and sends 6-digit OTP via Gmail SMTP.
  * POST /api/auth/register
  */
 export async function register(req, res, next) {
   try {
-    const { name, email, password, confirmPassword } = req.body;
+    const { email, name } = req.body;
 
-    // Field presence validations
-    if (!name || !email || !password) {
+    if (!email) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide full name, email, and password.',
-      });
-    }
-
-    if (password !== confirmPassword) {
-      return res.status(400).json({
-        success: false,
-        message: 'Passwords do not match.',
-      });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 8 characters long.',
+        message: 'Please provide your email address.',
       });
     }
 
     const cleanEmail = email.toLowerCase().trim();
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address.',
+      });
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email: cleanEmail });
@@ -72,18 +62,17 @@ export async function register(req, res, next) {
     const otp = generateSecureOtp();
     const otpHash = hashOtp(otp);
 
-    // Encrypt password securely for pending registration challenge
-    const encryptedPwd = encryptPassword(password, 'pending_user_registration_context');
-
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
     const resendAvailableAt = new Date(Date.now() + RESEND_COOLDOWN_MS);
+
+    const displayName = (name && name.trim()) || cleanEmail.split('@')[0];
 
     // Send OTP via Gmail SMTP first
     await sendOtpEmail({
       to: cleanEmail,
       otp,
       purpose: 'register',
-      name: name.trim(),
+      name: displayName,
     });
 
     // Store OTP challenge in database
@@ -94,8 +83,7 @@ export async function register(req, res, next) {
       expiresAt,
       resendAvailableAt,
       pendingUserData: {
-        name: name.trim(),
-        passwordHash: JSON.stringify(encryptedPwd),
+        name: displayName,
       },
     });
 
@@ -112,7 +100,8 @@ export async function register(req, res, next) {
 }
 
 /**
- * Step 2: Verify Registration OTP & Activate Account
+ * Step 2: Verify Registration OTP, Activate Account & Auto-Authenticate
+ * Immediately establishes session/JWT and redirects to Dashboard.
  * POST /api/auth/verify-register-otp
  */
 export async function verifyRegisterOtp(req, res, next) {
@@ -122,7 +111,7 @@ export async function verifyRegisterOtp(req, res, next) {
     if (!email || !otp) {
       return res.status(400).json({
         success: false,
-        message: 'Email and 6-digit OTP code are required.',
+        message: 'Email and 6-digit verification code are required.',
       });
     }
 
@@ -174,35 +163,38 @@ export async function verifyRegisterOtp(req, res, next) {
     // Prevent OTP reuse: Delete challenge immediately upon successful match
     await challenge.deleteOne();
 
-    // Ensure account does not already exist
-    const userAlreadyExists = await User.findOne({ email: cleanEmail });
-    if (userAlreadyExists) {
-      return res.status(400).json({
-        success: false,
-        message: 'Account already registered. Please proceed to login.',
+    // Check if user already exists (or create newly activated user)
+    let user = await User.findOne({ email: cleanEmail });
+    if (!user) {
+      const displayName = challenge.pendingUserData?.name || cleanEmail.split('@')[0];
+      user = await User.create({
+        name: displayName,
+        email: cleanEmail,
       });
     }
 
-    // Decrypt pending password and create User account
-    const encryptedPwdObj = JSON.parse(challenge.pendingUserData.passwordHash);
-    const plaintextPassword = decryptPassword(
-      encryptedPwdObj.encryptedPassword,
-      encryptedPwdObj.iv,
-      encryptedPwdObj.authTag,
-      'pending_user_registration_context'
-    );
+    // Issue JWT token immediately for seamless authentication
+    const token = generateToken(user._id);
 
-    // Create user (password is salted and hashed via User model pre-save hook)
-    const newUser = await User.create({
-      name: challenge.pendingUserData.name,
-      email: cleanEmail,
-      password: plaintextPassword,
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(201).json({
       success: true,
-      message: 'Account successfully verified and activated! Please sign in with your master credentials.',
-      email: newUser.email,
+      message: 'Account successfully verified and activated! Welcome to SecureVault.',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        preferences: user.preferences,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+      },
     });
   } catch (error) {
     next(error);
@@ -210,43 +202,41 @@ export async function verifyRegisterOtp(req, res, next) {
 }
 
 /**
- * Step 1: Initiate Login Authentication
- * Validates master credentials, creates login OTP challenge, and sends 6-digit OTP to user's Gmail.
+ * Step 1: Initiate Login Authentication (Email OTP-Only)
+ * Validates registered email, creates login OTP challenge, and sends 6-digit OTP to user's Gmail.
  * Does NOT issue JWT or session until OTP is verified.
  * POST /api/auth/login
  */
 export async function login(req, res, next) {
   try {
-    const { email, password } = req.body;
+    const { email } = req.body;
 
-    if (!email || !password) {
+    if (!email) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide both email and master password.',
+        message: 'Please provide your registered email address.',
       });
     }
 
     const cleanEmail = email.toLowerCase().trim();
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address.',
+      });
+    }
 
-    // Find user and select password field
-    const user = await User.findOne({ email: cleanEmail }).select('+password');
-
+    // Find registered user
+    const user = await User.findOne({ email: cleanEmail });
     if (!user) {
-      return res.status(401).json({
+      return res.status(404).json({
         success: false,
-        message: 'Invalid email address or password.',
+        message: 'No account found with this email address. Please register first.',
       });
     }
 
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid email address or password.',
-      });
-    }
-
-    // Credentials verified! Check resend cooldown if an active challenge exists
+    // Check resend cooldown if an active challenge exists
     const existingChallenge = await OtpChallenge.findOne({ email: cleanEmail, purpose: 'login' });
     if (existingChallenge && Date.now() < existingChallenge.resendAvailableAt.getTime()) {
       const waitSeconds = Math.ceil((existingChallenge.resendAvailableAt.getTime() - Date.now()) / 1000);

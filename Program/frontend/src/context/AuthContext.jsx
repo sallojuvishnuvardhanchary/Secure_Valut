@@ -42,8 +42,8 @@ export function AuthProvider({ children }) {
   /**
    * Step 1: Initiate Login Authentication (Triggers Gmail OTP send)
    */
-  const login = async (email, password) => {
-    const res = await authApi.login({ email, password });
+  const login = async (email) => {
+    const res = await authApi.login({ email });
     if (res.data?.success) {
       return res.data; // { success: true, requireOtp: true, purpose: 'login', email }
     }
@@ -57,20 +57,22 @@ export function AuthProvider({ children }) {
     const res = await authApi.verifyLoginOtp({ email, otp });
     if (res.data?.success) {
       const { token: newToken, user: newUser } = res.data;
-      localStorage.setItem('securevault_token', newToken);
-      localStorage.setItem('securevault_user', JSON.stringify(newUser));
-      setToken(newToken);
-      setUser(newUser);
+      if (newToken && newUser) {
+        localStorage.setItem('securevault_token', newToken);
+        localStorage.setItem('securevault_user', JSON.stringify(newUser));
+        setToken(newToken);
+        setUser(newUser);
+      }
       return res.data;
     }
     throw new Error(res.data?.message || 'OTP verification failed');
   };
 
   /**
-   * Step 1: Initiate New User Registration (Triggers Gmail OTP send)
+   * Step 1: Initiate New User Registration (Email OTP-Only)
    */
-  const register = async (name, email, password, confirmPassword) => {
-    const res = await authApi.register({ name, email, password, confirmPassword });
+  const register = async (email, name = '') => {
+    const res = await authApi.register({ email, name });
     if (res.data?.success) {
       return res.data; // { success: true, requireOtp: true, purpose: 'register', email }
     }
@@ -78,11 +80,18 @@ export function AuthProvider({ children }) {
   };
 
   /**
-   * Step 2: Verify Registration OTP & Activate Account
+   * Step 2: Verify Registration OTP, Activate Account & Auto-Authenticate
    */
   const verifyRegisterOtp = async (email, otp) => {
     const res = await authApi.verifyRegisterOtp({ email, otp });
     if (res.data?.success) {
+      const { token: newToken, user: newUser } = res.data;
+      if (newToken && newUser) {
+        localStorage.setItem('securevault_token', newToken);
+        localStorage.setItem('securevault_user', JSON.stringify(newUser));
+        setToken(newToken);
+        setUser(newUser);
+      }
       return res.data;
     }
     throw new Error(res.data?.message || 'Registration OTP verification failed');

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Shield, Eye, EyeOff, Lock, Mail, ArrowRight, KeyRound, CheckCircle2 } from 'lucide-react';
+import { Shield, Mail, ArrowRight, KeyRound, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import ThemeToggle from '../components/ThemeToggle';
@@ -11,43 +11,30 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [verifiedMsg, setVerifiedMsg] = useState(location.state?.verifiedMessage || '');
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (error) setError('');
-    if (verifiedMsg) setVerifiedMsg('');
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.email || !formData.password) {
-      setError('Please provide both email and master password.');
+    if (!email || !email.trim()) {
+      setError('Please provide your registered email address.');
       return;
     }
 
     setLoading(true);
     setError('');
     try {
-      const res = await login(formData.email, formData.password);
+      const res = await login(email.trim());
       if (res?.requireOtp) {
-        toast.info('Verification code sent to your Gmail.');
+        toast.info('Verification code sent to your email.');
         navigate('/verify-otp', {
           state: { email: res.email, purpose: 'login' },
         });
-      } else {
-        toast.success('Welcome back to SecureVault!');
-        navigate('/');
       }
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Login failed. Please check credentials.';
+      const msg = err.response?.data?.message || err.message || 'Login failed. Please check your email.';
       setError(msg);
       toast.error(msg);
     } finally {
@@ -57,10 +44,7 @@ export default function Login() {
 
   // Quick Demo account autofill for evaluation convenience
   const fillDemoAccount = () => {
-    setFormData({
-      email: 'demo@securevault.com',
-      password: 'Password@1234',
-    });
+    setEmail('demo@securevault.com');
     setError('');
   };
 
@@ -113,7 +97,7 @@ export default function Login() {
             Welcome to SecureVault
           </h1>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
-            Enterprise Zero-Knowledge Password Security
+            Passwordless Access via Secure Email OTP
           </p>
         </div>
 
@@ -157,7 +141,7 @@ export default function Login() {
           </div>
         )}
 
-        {/* Login Form */}
+        {/* Email-Only Login Form */}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Email Address</label>
@@ -166,8 +150,11 @@ export default function Login() {
               <input
                 type="email"
                 name="email"
-                value={formData.email}
-                onChange={handleChange}
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError('');
+                }}
                 placeholder="name@company.com"
                 className="form-input"
                 style={{ paddingLeft: '2.5rem' }}
@@ -175,43 +162,18 @@ export default function Login() {
                 required
               />
             </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Master Password</label>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <Lock size={18} color="var(--text-muted)" style={{ position: 'absolute', left: '0.875rem' }} />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••••••"
-                className="form-input mono-font"
-                style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem' }}
-                autoComplete="current-password"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="btn-icon"
-                style={{ position: 'absolute', right: '0.5rem', background: 'transparent', border: 'none' }}
-                title={showPassword ? 'Hide password' : 'Show password'}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+              Enter your registered email. We'll send a 6-digit one-time code to unlock your vault.
+            </p>
           </div>
 
           <button
             type="submit"
             className="btn btn-primary"
-            style={{ width: '100%', marginTop: '0.5rem', padding: '0.75rem' }}
+            style={{ width: '100%', marginTop: '0.75rem', padding: '0.75rem' }}
             disabled={loading}
           >
-            {loading ? 'Unlocking Vault...' : 'Unlock Vault'}
+            {loading ? 'Sending Login Code...' : 'Send Login Code'}
             {!loading && <ArrowRight size={17} />}
           </button>
         </form>
@@ -225,7 +187,7 @@ export default function Login() {
             style={{ width: '100%', fontSize: '0.825rem', padding: '0.6rem' }}
           >
             <KeyRound size={15} color="var(--accent)" />
-            Fill Demo Credentials (demo@securevault.com)
+            Fill Demo Account (demo@securevault.com)
           </button>
         </div>
 
