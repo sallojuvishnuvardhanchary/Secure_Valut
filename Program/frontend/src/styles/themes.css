@@ -1,0 +1,81 @@
+/* SecureVault Theme System: Light & Dark Modes */
+
+:root, [data-theme="light"] {
+  --bg-page: #F4F6FA;
+  --bg-card: #FFFFFF;
+  --bg-card-subtle: #F8FAFC;
+  --bg-sidebar: #FFFFFF;
+  --bg-navbar: #FFFFFF;
+  --text-primary: #202534;
+  --text-secondary: #6B7280;
+  --text-muted: #9CA3AF;
+  --border-color: #E5E7EB;
+  --border-hover: #D1D5DB;
+  --accent: #4F46E5;
+  --accent-hover: #4338CA;
+  --accent-light: #EEF2FF;
+  --accent-text: #FFFFFF;
+  --input-bg: #FFFFFF;
+  --input-border: #E5E7EB;
+  --input-focus-border: #4F46E5;
+  --input-focus-ring: rgba(79, 70, 229, 0.15);
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+
+  --badge-bg: #F3F4F6;
+  --badge-text: #374151;
+  --danger: #EF4444;
+  --danger-light: #FEF2F2;
+  --warning: #F59E0B;
+  --warning-light: #FFFBEB;
+  --success: #10B981;
+  --success-light: #ECFDF5;
+  --info: #3B82F6;
+  --info-light: #EFF6FF;
+
+  --scrollbar-thumb: #D1D5DB;
+  --scrollbar-track: #F3F4F6;
+}
+
+[data-theme="dark"] {
+  --bg-page: #171923;
+  --bg-card: #232635;
+  --bg-card-subtle: #1C1F2E;
+  --bg-sidebar: #1E212E;
+  --bg-navbar: #1E212E;
+  --text-primary: #F3F4F6;
+  --text-secondary: #A1A6B8;
+  --text-muted: #717688;
+  --border-color: #35394A;
+  --border-hover: #484E66;
+  --accent: #A5B4FC;
+  --accent-hover: #818CF8;
+  --accent-light: rgba(165, 180, 252, 0.12);
+  --accent-text: #171923;
+  --input-bg: #1D2130;
+  --input-border: #35394A;
+  --input-focus-border: #A5B4FC;
+  --input-focus-ring: rgba(165, 180, 252, 0.2);
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.65), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+
+  --badge-bg: #2D3247;
+  --badge-text: #D1D5DB;
+  --danger: #F87171;
+  --danger-light: rgba(239, 68, 68, 0.15);
+  --warning: #FBBF24;
+  --warning-light: rgba(245, 158, 11, 0.15);
+  --success: #34D399;
+  --success-light: rgba(16, 185, 129, 0.15);
+  --info: #60A5FA;
+  --info-light: rgba(59, 130, 246, 0.15);
+
+  --scrollbar-thumb: #3E4357;
+  --scrollbar-track: #171923;
+}
